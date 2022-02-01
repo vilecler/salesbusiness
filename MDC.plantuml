@@ -1,0 +1,219 @@
+@startuml
+
+title Entreprise de vente
+
+hide circle
+
+class Personne{
+  nom : VARCHAR
+  prenom : VARCHAR
+  dateDeNaissance : Date
+  email : VARCHAR
+  adresse : TEXT
+}
+
+note top : (nom, prenom, dateDeNaissance) unique
+
+
+class PersonneAdresse{
+  numero : integer
+  rue : VARCHAR
+  code_postal : integer
+  ville : VARCHAR
+}
+
+abstract class Facture <<abstract>> {
+  montantTotal : number
+  date : Date
+  payee : bool
+}
+
+class FacturePersonne{
+
+}
+
+note top : Lorsque'un client achete quelque chose a l'Entreprise
+
+class FactureFournisseur{
+
+}
+
+note bottom : Lorsque l'Entreprise achete quelque chose a un fournisseur
+
+class Categorie{
+  nom : VARCHAR {unique}
+}
+
+
+class SousCategorie{
+  nom : VARCHAR {unique}
+}
+
+class Produit{
+  reference : VARCHAR {unique}
+  prixDeReference : int > 0
+  consommation : int > 0
+  marque : VARCHAR
+}
+
+class ProduitDescription{
+  short : TEXT
+  long : TEXT
+}
+
+
+abstract class OccurrenceDeProduit <<abstract>>{
+  numeroDeSerie : VARCHAR {unique}
+  prix : int > 0
+}
+
+note top : Represente les prouits en stock dans l'Entreprise ou chez un fournisseur
+
+class OccurrenceDeProduitEntreprise{
+  extensionDeGarantie : bool
+  montantDeLExtensionDeGarantie : int > 0
+  montantDeLInstallationParUnSpecialiste : int > 0
+}
+
+class OccurrenceDeProduitFournisseur{
+
+}
+
+class Fournisseur{
+  nom : VARCHAR {unique}
+}
+
+class FournisseurAdresse{
+  numero : integer
+  rue : VARCHAR
+  code_postal : integer
+  ville : VARCHAR
+}
+
+note left : Deux fournisseurs peuvent avoir\nle meme nom.
+
+class TicketSAV{
+  date : Date
+  statut : {done, in progess, todo}
+  issue : {retour client, reparation, remise, NULL}
+}
+
+note bottom : Represente le suivi d'un produit en SAV
+
+class Reparation{
+  dateEntree : Date
+  dateSortie : Date
+  materielUtilise : VARCHAR
+  montant : int > 0
+}
+
+class BonDeCommande{
+  statut : bool
+  dateCreation : date
+  dateTraitement : date
+}
+note bottom : Necessite un temps de traitement
+
+class Remise{
+  montantDeLaRemise : int > 0
+  type : {avoir, promotion, pourcentage}
+  dateDebut : Date
+  dateFin : Date
+  nombreUtilisations : int
+}
+
+note bottom : Peut etre de formes variees (un ou plusieurs produits,\n une personne ou tout le monde)
+
+class MembreDeLEentreprise{
+  dateEntreeEntreprise : Date
+  dateSortieEntreprise : Date
+}
+
+note top : N'est pas  forcment membre de ces trois services
+
+class MembreDuServiceAchat{
+  dateEntreeService : Date
+  dateSortieService : Date
+}
+
+class MembreDuServiceVente{
+  dateEntreeService : Date
+  dateSortieService : Date
+}
+
+note bottom : Seul a pouvoir facturer un client
+
+class MembreDuSAV{
+  dateEntreeService : Date
+  dateSortieService : Date
+}
+
+Personne <|-- MembreDeLEentreprise
+Personne -* "1" PersonneAdresse
+
+MembreDeLEentreprise <|-- MembreDuServiceAchat
+MembreDeLEentreprise <|-- MembreDuServiceVente
+MembreDeLEentreprise <|-- MembreDuSAV
+
+Produit "1" -- "1..*" OccurrenceDeProduit : > fait reference a
+Produit *- "1" ProduitDescription : > possede
+
+SousCategorie "1" --- "*" Produit : < appartient
+
+SousCategorie "*" -* "1" Categorie : > compose
+
+OccurrenceDeProduit <|--OccurrenceDeProduitEntreprise
+OccurrenceDeProduit <|-- OccurrenceDeProduitFournisseur
+
+FactureFournisseur "1" -- "*" OccurrenceDeProduitFournisseur : > contient
+FacturePersonne "1" -- "*" OccurrenceDeProduitEntreprise : > contient
+Remise "*" -- "*" FacturePersonne : < contient
+
+Facture <|-- FacturePersonne
+Facture <|-- FactureFournisseur
+
+Reparation "*" -- "1" FacturePersonne :  < peut contenir
+
+FacturePersonne "*" --- "*" MembreDuServiceVente :  < cree
+
+MembreDuServiceVente "1" -- "*" BonDeCommande : > emets
+
+MembreDuServiceAchat "1" - "*" BonDeCommande : > traite
+
+MembreDuServiceAchat "*" -- "*" Fournisseur : > achete aupres de
+
+FacturePersonne "1" -- "*" TicketSAV : > est attache a
+
+MembreDuSAV "1" -- "*" TicketSAV :  > cree
+MembreDuSAV "1" -- "*" TicketSAV :  > modifie
+
+
+MembreDuSAV "1" -- "*" Reparation : > peut effectuer
+
+MembreDuSAV "1" -- "*" Remise : > peut decider de creer
+
+MembreDuSAV "*" -- "*" Personne : > peut decider de rendre le produit a
+
+Remise "*" --- "1" MembreDuServiceVente : < peut decider de creer
+
+Reparation "*" -* "1" TicketSAV : > compose
+
+MembreDuServiceVente "1" -- "*" OccurrenceDeProduitEntreprise : > supprime une fois vendu
+MembreDuServiceAchat "1" -- "*" OccurrenceDeProduitEntreprise : > ajoute une fois achete
+
+Fournisseur "1" -- "*" FactureFournisseur : > emets
+
+FournisseurAdresse "1" *- Fournisseur
+
+MembreDuServiceAchat "1" -- "*" FactureFournisseur : > regle aux fournisseurs
+
+Produit "1..*" -- "*" BonDeCommande : < contient
+
+Fournisseur "1" --- "*" OccurrenceDeProduitFournisseur : > propose
+
+FacturePersonne "*" ---* "1" Personne : < recoit (une fois payee(s))
+
+Personne "0..1" --- "*" Remise : < peut etre reservee a
+
+
+@enduml
